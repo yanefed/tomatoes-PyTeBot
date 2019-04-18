@@ -1,4 +1,5 @@
 import logging
+import os
 
 from telegram.ext import Updater, CommandHandler
 
@@ -122,6 +123,5 @@ def main():
     updater.idle()
 
 
-#if __name__ == '__main__':
-#    main()
-main()
+if __name__ == '__main__':
+    main()

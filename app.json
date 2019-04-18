@@ -1,0 +1,22 @@
+{
+  "name": "tgtomatoebot",
+  "description": "",
+  "repository": "https://github.com/Kylmakalle/tgvkbot",
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "env": {
+    "TELEGRAM_TOKEN": {
+      "description": "Telegram bot API токен от https://t.me/BotFather",
+      "value": "885275180:AAGDMJcATEbqQWwIiKb-zpAwvR8hkM-N3xs"
+    },
+    "formation": {
+      "bot": {
+        "quantity": 1,
+        "size": "free"
+      }
+    }
+  }
+}
