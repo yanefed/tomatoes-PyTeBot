@@ -61,7 +61,7 @@ def set_timer(bot, update, args, job_queue, chat_data):
     chat_id = update.message.chat_id
     try:
         # args[0] should contain the time for the timer in seconds
-        due = int(args[0])
+        due = int(args[0])*60
         if due < 0:
             update.message.reply_text('Sorry we can not go back to future!')
             return
