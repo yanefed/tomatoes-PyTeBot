@@ -1,7 +1,9 @@
 import logging
-import os
 
-from telegram.ext import Updater, CommandHandler
+from telegram.ext import *
+
+import config
+from SQLighter import SQLighter
 
 """import telebot
 from telegram import Message
@@ -49,7 +51,15 @@ logger = logging.getLogger(__name__)
 # Define a few command handlers. These usually take the two arguments bot and
 # update. Error handlers also receive the raised TelegramError object in error.
 def start(bot, update):
+    db_worker = SQLighter(config.database_name)
     update.message.reply_text('Hi! Use /set <seconds> to set a timer')
+    db_worker.new_user(update.message.chat_id)
+
+
+def test(bot, update):
+    if update.message.text == 'test':
+        print("Received", update.message.text)
+        bot.send_message(chat_id=update.message.chat_id, text='ping')
 
 
 def alarm(bot, job):
@@ -62,7 +72,7 @@ def set_timer(bot, update, args, job_queue, chat_data):
     chat_id = update.message.chat_id
     try:
         # args[0] should contain the time for the timer in seconds
-        due = int(args[0])*60
+        due = float(args[0]) * 60
         if due < 0:
             update.message.reply_text('Sorry we can not go back to future!')
             return
@@ -97,7 +107,7 @@ def error(bot, update, error):
 
 def main():
     """Run bot."""
-    updater = Updater(TOKEN)
+    updater = Updater(config.token)
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
@@ -110,6 +120,7 @@ def main():
                                   pass_job_queue=True,
                                   pass_chat_data=True))
     dp.add_handler(CommandHandler("unset", unset, pass_chat_data=True))
+    dp.add_handler(MessageHandler(Filters.text, test, pass_chat_data=False))
 
     # log all errors
     dp.add_error_handler(error)
