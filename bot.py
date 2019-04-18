@@ -52,14 +52,56 @@ logger = logging.getLogger(__name__)
 # update. Error handlers also receive the raised TelegramError object in error.
 def start(bot, update):
     db_worker = SQLighter(config.database_name)
+    cur_user = (update.message.chat_id, )
+    print(cur_user)
+    exist = db_worker.searh_user()
+    print(exist)
+    if cur_user in exist:
+        print("С возвращением!")
+    else:
+        db_worker.new_user(update.message.chat_id)
     update.message.reply_text('Hi! Use /set <seconds> to set a timer')
-    db_worker.new_user(update.message.chat_id)
 
 
-def test(bot, update):
-    if update.message.text == 'test':
+def test(bot, update, job_queue, chat_data):
+    msg = update.message.text.split()
+    chat_id = update.message.chat_id
+    print(msg)
+    if msg[0] == 'test':
         print("Received", update.message.text)
         bot.send_message(chat_id=update.message.chat_id, text='ping')
+    if msg[0] == 'work':
+        try:
+            # args[0] should contain the time for the timer in seconds
+            due = float(msg[1]) * 60
+            if due < 0:
+                update.message.reply_text('Sorry we can not go back to future!')
+                return
+
+            # Add job to queue
+            job = job_queue.run_once(alarm, due, context=chat_id)
+            chat_data['job'] = job
+
+            update.message.reply_text('Timer successfully set!')
+
+        except (IndexError, ValueError):
+            update.message.reply_text('Usage: ')
+    if msg[0] == 'rest':
+        try:
+            # args[0] should contain the time for the timer in seconds
+            due = float(msg[1]) * 60
+            if due < 0:
+                update.message.reply_text('Sorry we can not go back to future!')
+                return
+
+            # Add job to queue
+            job = job_queue.run_once(alarm, due, context=chat_id)
+            chat_data['job'] = job
+
+            update.message.reply_text('Timer successfully set!')
+
+        except (IndexError, ValueError):
+            update.message.reply_text('Usage: ')
 
 
 def alarm(bot, job):
@@ -84,7 +126,7 @@ def set_timer(bot, update, args, job_queue, chat_data):
         update.message.reply_text('Timer successfully set!')
 
     except (IndexError, ValueError):
-        update.message.reply_text('Usage: /set <seconds>')
+        update.message.reply_text('Usage: ')
 
 
 def unset(bot, update, chat_data):
@@ -120,7 +162,7 @@ def main():
                                   pass_job_queue=True,
                                   pass_chat_data=True))
     dp.add_handler(CommandHandler("unset", unset, pass_chat_data=True))
-    dp.add_handler(MessageHandler(Filters.text, test, pass_chat_data=False))
+    dp.add_handler(MessageHandler(Filters.text, test, pass_chat_data=True, pass_job_queue=True))
 
     # log all errors
     dp.add_error_handler(error)

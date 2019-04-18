@@ -19,7 +19,11 @@ class SQLighter:
 
     def new_user(self, user_id):
         with self.connection:
-            self.cursor.execute('INSERT INTO user_data VALUES (?, 25, 5)', (user_id,))
+            self.cursor.execute('INSERT INTO user_data VALUES (?, 25, 5)', user_id)
+
+    def searh_user(self):
+        with self.connection:
+            return self.cursor.execute('SELECT user_id FROM user_data').fetchall()
 
     def select_all(self):
         """ Получаем все строки """
