@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 import sqlite3
-from random import shuffle
-
-from telebot import types
 
 
 class SQLighter:
@@ -39,6 +36,10 @@ class SQLighter:
     def write_work(self, time, user_id):
         with self.connection:
             self.cursor.execute('UPDATE user_data SET work_time = ? WHERE user_id = ?', (time, user_id,))
+
+    def write_rest(self, time, user_id):
+        with self.connection:
+            self.cursor.execute('UPDATE user_data SET rest_time = ? WHERE user_id = ?', (time, user_id,))
 
     def close(self):
         """ Закрываем текущее соединение с БД """
