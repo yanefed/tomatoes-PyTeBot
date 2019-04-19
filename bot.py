@@ -41,30 +41,59 @@ def start(bot, update, chat_data):
                                 pass_chat_data=True))
     dp.add_handler(RegexHandler("^(Send Feedback)$", feedback_handler,
                                 pass_chat_data=True, pass_user_data=True))
-    dp.add_handler(RegexHandler("^(Send Feedback)$"))
+    dp.add_handler(RegexHandler("^(Settings)$", settings_handler, ))
 
 
 def settings_handler(bot, update):
-    pass
+    temp_keyboard = [['Set work timer'], ['Set rest timer']]
+    markup = telegram.ReplyKeyboardMarkup(temp_keyboard)
+    bot.send_message(update.message.chat_id, text='Settings', reply_markup=markup)
+    set_work_handler = RegexHandler("^(Set work timer)$", set_work_option)
+    set_rest_handler = RegexHandler("^(Set rest timer)$", set_rest_options)
+    dp.add_handler(set_work_handler)
+    dp.add_handler(set_rest_handler)
+
+
+def set_work_option(bot, update):
+    global text_handler
+    text_handler = MessageHandler(Filters.text, set_work_check)
+    dp.add_handler(text_handler)
+
+
+def set_work_check(bot, update):
+    db_worker = SQLighter(config.database_name)
+    try:
+        temp = float(update.message.text)
+        print('success')
+    except ValueError:
+        set_work_option(bot, update)
+    temp = str(temp)
+    db_worker.write_work(time=temp, user_id=update.message.chat_id)
+
+
+def set_rest_options(bot, update):
+    global set_handler
+    set_handler = MessageHandler(Filters.text, send_feedback, pass_user_data=True)
+    dp.add_handler(set_handler)
 
 
 def feedback_handler(bot, update, chat_data):
     """Catch user feedback"""
-    global test
-    test = MessageHandler(Filters.text, send_feedback, pass_user_data=True)
-    dp.add_handler(test)
+    global text_handler
+    text_handler = MessageHandler(Filters.text, send_feedback, pass_user_data=True)
+    dp.add_handler(text_handler)
 
 
 def send_feedback(bot, update, user_data):
     """Send feedback to admins"""
     for guy in config.admins:
         bot.send_message(guy, str(update.message.from_user.username) + ' sent feedback: ' + update.message.text)
-    dp.remove_handler(test)
+    dp.remove_handler(text_handler)
 
 
 def alarm(bot, job):
     """Send the alarm message."""
-    return_keyboard = [['Work', 'Rest'], ['Send Feedback', 'Options']]
+    return_keyboard = [['Work', 'Rest'], ['Send Feedback', 'Settings']]
     markup = telegram.ReplyKeyboardMarkup(return_keyboard)
     bot.send_message(job.context, text='Beep!', reply_markup=markup)
 
