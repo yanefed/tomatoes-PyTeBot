@@ -1,3 +1,4 @@
+import copy
 import logging
 
 import telegram
@@ -93,9 +94,9 @@ def send_feedback(bot, update, user_data):
 
 def alarm(bot, job):
     """Send the alarm message."""
-    return_keyboard = [['Work', 'Rest'], ['Send Feedback', 'Settings']]
-    markup = telegram.ReplyKeyboardMarkup(return_keyboard)
-    bot.send_message(job.context, text='Beep!', reply_markup=markup)
+    config.start_keyboard = copy.deepcopy(config.return_keyboard)
+    markup = telegram.ReplyKeyboardMarkup(config.start_keyboard)
+    bot.send_message(job.context, text='Beep-beep! Time is up!', reply_markup=markup)
 
 
 def work_timer(bot, update, job_queue, chat_data):
@@ -128,7 +129,10 @@ def unset(bot, update, chat_data):
     job = chat_data['job']
     job.schedule_removal()
     del chat_data['job']
-    update.message.reply_text('Timer successfully unset!')
+    config.start_keyboard = copy.deepcopy(config.return_keyboard)
+    bot.send_message(chat_id=update.message.chat_id,
+                     text='Timer successfully unset',
+                     reply_markup=telegram.ReplyKeyboardMarkup(config.start_keyboard))
 
 
 def error(bot, update, error):
