@@ -36,6 +36,10 @@ class SQLighter:
         with self.connection:
             return self.cursor.execute('SELECT * FROM music').fetchall()
 
+    def write_work(self, time, user_id):
+        with self.connection:
+            self.cursor.execute('UPDATE user_data SET work_time = ? WHERE user_id = ?', (time, user_id,))
+
     def close(self):
         """ Закрываем текущее соединение с БД """
         self.connection.close()
