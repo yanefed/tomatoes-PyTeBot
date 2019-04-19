@@ -40,25 +40,39 @@ def start(bot, update, chat_data):
                                 pass_job_queue=True))
     dp.add_handler(RegexHandler("^(Send Feedback)$", feedback_handler,
                                 pass_chat_data=True))
-    dp.add_handler(RegexHandler("^(Send Feedback)$", feedback_handler,
-                                pass_chat_data=True, pass_user_data=True))
-    dp.add_handler(RegexHandler("^(Settings)$", settings_handler, ))
+    dp.add_handler(RegexHandler("^(Settings)$", settings_handler))
+    dp.add_handler(RegexHandler("^(Stop)$", unset, pass_chat_data=True))
+
+
+def cancel_button(bot, update):
+    try:
+        dp.remove_handler(text_handler)
+    except NameError:
+        pass
+    bot.send_message(update.message.chat_id,
+                     text='Cancel',
+                     reply_markup=telegram.ReplyKeyboardMarkup(config.start_keyboard))
 
 
 def settings_handler(bot, update):
-    temp_keyboard = [['Set work timer'], ['Set rest timer']]
+    temp_keyboard = [['Set work timer'], ['Set rest timer'], ['Cancel']]
     markup = telegram.ReplyKeyboardMarkup(temp_keyboard)
     bot.send_message(update.message.chat_id, text='Settings', reply_markup=markup)
     set_work_handler = RegexHandler("^(Set work timer)$", set_work_option)
-    set_rest_handler = RegexHandler("^(Set rest timer)$", set_rest_options)
+    set_rest_handler = RegexHandler("^(Set rest timer)$", set_rest_option)
+    cancel_work_handler = RegexHandler("^(Cancel)$", cancel_button)
     dp.add_handler(set_work_handler)
     dp.add_handler(set_rest_handler)
+    dp.add_handler(cancel_work_handler)
 
 
 def set_work_option(bot, update):
     global text_handler
     text_handler = MessageHandler(Filters.text, set_work_check)
+    dp.add_handler(RegexHandler("^(Cancel)$", cancel_button))
     dp.add_handler(text_handler)
+    markup = telegram.ReplyKeyboardMarkup([['Cancel']], one_time_keyboard=True)
+    bot.send_message(update.message.chat_id, text='Enter work duration', reply_markup=markup)
 
 
 def set_work_check(bot, update):
@@ -66,27 +80,57 @@ def set_work_check(bot, update):
     try:
         temp = float(update.message.text)
         print('success')
+        temp = str(temp)
+        db_worker.write_work(time=temp, user_id=update.message.chat_id)
+        bot.send_message(chat_id=update.message.chat_id, text='Done',
+                         reply_markup=telegram.ReplyKeyboardMarkup(config.start_keyboard))
+        dp.remove_handler(text_handler)
     except ValueError:
+        bot.send_message(update.message.chat_id, text='Wrong value. Try again.')
         set_work_option(bot, update)
-    temp = str(temp)
-    db_worker.write_work(time=temp, user_id=update.message.chat_id)
 
 
-def set_rest_options(bot, update):
-    global set_handler
-    set_handler = MessageHandler(Filters.text, send_feedback, pass_user_data=True)
-    dp.add_handler(set_handler)
+def set_rest_option(bot, update):
+    global text_handler
+    text_handler = MessageHandler(Filters.text, set_rest_check)
+    dp.add_handler(RegexHandler("^(Cancel)$", cancel_button))
+    dp.add_handler(text_handler)
+    markup = telegram.ReplyKeyboardMarkup([['Cancel']], one_time_keyboard=True)
+    bot.send_message(update.message.chat_id, text='Enter rest duration', reply_markup=markup)
+
+
+def set_rest_check(bot, update):
+    db_worker = SQLighter(config.database_name)
+    try:
+        temp = float(update.message.text)
+        print('success')
+        temp = str(temp)
+        db_worker.write_rest(time=temp, user_id=update.message.chat_id)
+        bot.send_message(chat_id=update.message.chat_id, text='Done',
+                         reply_markup=telegram.ReplyKeyboardMarkup(config.start_keyboard))
+        dp.remove_handler(text_handler)
+    except ValueError:
+        set_rest_option(bot, update)
 
 
 def feedback_handler(bot, update, chat_data):
     """Catch user feedback"""
     global text_handler
-    text_handler = MessageHandler(Filters.text, send_feedback, pass_user_data=True)
+    dp.add_handler(RegexHandler("^(Cancel)$", cancel_button))
+    markup = telegram.ReplyKeyboardMarkup([['Cancel']])
+    bot.send_message(update.message.chat_id,
+                     text='Enter your feedback message',
+                     reply_markup=markup)
+    text_handler = MessageHandler(Filters.text, send_feedback,
+                                  pass_user_data=True)
     dp.add_handler(text_handler)
 
 
 def send_feedback(bot, update, user_data):
     """Send feedback to admins"""
+    markup = telegram.ReplyKeyboardMarkup(config.start_keyboard)
+    bot.send_message(chat_id=update.message.chat_id,
+                     text='Done!', reply_markup=markup)
     for guy in config.admins:
         bot.send_message(guy, str(update.message.from_user.username) + ' sent feedback: ' + update.message.text)
     dp.remove_handler(text_handler)
@@ -105,9 +149,10 @@ def work_timer(bot, update, job_queue, chat_data):
     chat_id = update.message.chat_id
     db_worker = SQLighter(config.database_name)
     due = float(db_worker.select_work(update.message.chat_id).fetchone()[0])
-    job = job_queue.run_once(alarm, due, context=chat_id)
+    job = job_queue.run_once(alarm, due * 60, context=chat_id)
     chat_data['job'] = job
-    bot.send_message(text='Timer successfully set!', chat_id=chat_id, reply_markup=markup)
+    bot.send_message(text='Start work now! You have {:.7g} minutes.'.format(float(due)), chat_id=chat_id,
+                     reply_markup=markup)
 
 
 def rest_timer(bot, update, job_queue, chat_data):
@@ -116,9 +161,9 @@ def rest_timer(bot, update, job_queue, chat_data):
     chat_id = update.message.chat_id
     db_worker = SQLighter(config.database_name)
     due = float(db_worker.select_rest(update.message.chat_id).fetchone()[0])
-    job = job_queue.run_once(alarm, due, context=chat_id)
+    job = job_queue.run_once(alarm, due * 60, context=chat_id)
     chat_data['job'] = job
-    bot.send_message(text='Timer successfully set!', chat_id=chat_id, reply_markup=markup)
+    bot.send_message(text='Now you can rest {:.7g} minutes.'.format(float(due)), chat_id=chat_id, reply_markup=markup)
 
 
 def unset(bot, update, chat_data):
@@ -152,7 +197,6 @@ def main():
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("start", start, pass_chat_data=True))
     dp.add_handler(CommandHandler("unset", unset, pass_chat_data=True))
-    RegexHandler('^(Work)$', work_timer, pass_user_data=True, pass_job_queue=True)
 
     # log all errors
     dp.add_error_handler(error)

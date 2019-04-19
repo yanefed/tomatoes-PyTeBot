@@ -4,4 +4,4 @@ database_name = 'data.db'  # Файл с базой данных
 shelve_name = 'shelve.db'  # Файл с хранилищем
 admins = {87763438, 569763743}
 start_keyboard = [['Work', 'Rest'], ['Send Feedback', 'Settings']]
-
+return_keyboard = [['Work', 'Rest'], ['Send Feedback', 'Settings']]
