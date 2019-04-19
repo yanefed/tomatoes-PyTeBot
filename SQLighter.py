@@ -11,11 +11,17 @@ class SQLighter:
         self.connection = sqlite3.connect(database)
         self.cursor = self.connection.cursor()
 
-    def select_item(self, user_id, item):
+    def select_work(self, user_id):
         """Получаем один элемент из БД"""
         with self.connection:
-            return self.cursor.execute('SELECT ? FROM user_data where data.user = ?',
-                                       (item, user_id))
+            return self.cursor.execute('SELECT work_time FROM user_data where user_id = ?',
+                                       (user_id,))
+
+    def select_rest(self, user_id):
+        """Получаем один элемент из БД"""
+        with self.connection:
+            return self.cursor.execute('SELECT rest_time FROM user_data where user_id = ?',
+                                       (user_id,))
 
     def new_user(self, user_id):
         with self.connection:
@@ -29,17 +35,6 @@ class SQLighter:
         """ Получаем все строки """
         with self.connection:
             return self.cursor.execute('SELECT * FROM music').fetchall()
-
-    def select_single(self, rownum):
-        """ Получаем одну строку с номером rownum """
-        with self.connection:
-            return self.cursor.execute('SELECT * FROM music WHERE id = ?', (rownum,)).fetchall()[0]
-
-    def count_rows(self):
-        """ Считаем количество строк """
-        with self.connection:
-            result = self.cursor.execute('SELECT * FROM music').fetchall()
-            return len(result)
 
     def close(self):
         """ Закрываем текущее соединение с БД """
@@ -68,7 +63,7 @@ def generate_markup(right_answer, wrong_answers):
     return markup
 
 
-def select_item(self, user_id, item):
+def select_item_work(self, user_id, item):
     """Получаем один элемент из БД"""
     with self.connection:
         return self.cursor.execute('SELECT ? FROM data where data.user = ?',
