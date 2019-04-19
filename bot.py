@@ -6,8 +6,6 @@ from telegram.ext import *
 import config
 from SQLighter import SQLighter
 
-admins = {87763438}
-
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -15,7 +13,6 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 CHOOSING, TYPING_REPLY, TYPING_CHOICE = range(3)
-start_keyboard = [['Work', 'Rest'], ['Send Feedback', 'Options']]
 
 
 def start(bot, update, chat_data):
@@ -30,7 +27,7 @@ def start(bot, update, chat_data):
     else:
         db_worker.new_user(update.message.chat_id)
 
-    markup = telegram.ReplyKeyboardMarkup(start_keyboard)
+    markup = telegram.ReplyKeyboardMarkup(config.start_keyboard)
     bot.send_message(chat_id=update.message.chat_id,
                      text='This is tomato timer. Please, choose any option.',
                      reply_markup=markup)
@@ -60,7 +57,7 @@ def feedback_handler(bot, update, chat_data):
 
 def send_feedback(bot, update, user_data):
     """Send feedback to admins"""
-    for guy in admins:
+    for guy in config.admins:
         bot.send_message(guy, str(update.message.from_user.username) + ' sent feedback: ' + update.message.text)
     dp.remove_handler(test)
 
@@ -73,8 +70,8 @@ def alarm(bot, job):
 
 
 def work_timer(bot, update, job_queue, chat_data):
-    start_keyboard[0][0] = 'Stop'
-    markup = telegram.ReplyKeyboardMarkup(start_keyboard)
+    config.start_keyboard[0][0] = 'Stop'
+    markup = telegram.ReplyKeyboardMarkup(config.start_keyboard)
     chat_id = update.message.chat_id
     db_worker = SQLighter(config.database_name)
     due = float(db_worker.select_work(update.message.chat_id).fetchone()[0])
@@ -84,8 +81,8 @@ def work_timer(bot, update, job_queue, chat_data):
 
 
 def rest_timer(bot, update, job_queue, chat_data):
-    start_keyboard[0][1] = 'Stop'
-    markup = telegram.ReplyKeyboardMarkup(start_keyboard)
+    config.start_keyboard[0][1] = 'Stop'
+    markup = telegram.ReplyKeyboardMarkup(config.start_keyboard)
     chat_id = update.message.chat_id
     db_worker = SQLighter(config.database_name)
     due = float(db_worker.select_rest(update.message.chat_id).fetchone()[0])
@@ -114,7 +111,7 @@ def main():
     """Run bot."""
     global dp
 
-    updater = Updater("885275180:AAGDMJcATEbqQWwIiKb-zpAwvR8hkM-N3xs")
+    updater = Updater(config.token)
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
