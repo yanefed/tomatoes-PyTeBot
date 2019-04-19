@@ -28,11 +28,6 @@ class SQLighter:
         with self.connection:
             return self.cursor.execute('SELECT user_id FROM user_data').fetchall()
 
-    def select_all(self):
-        """ Получаем все строки """
-        with self.connection:
-            return self.cursor.execute('SELECT * FROM music').fetchall()
-
     def write_work(self, time, user_id):
         with self.connection:
             self.cursor.execute('UPDATE user_data SET work_time = ? WHERE user_id = ?', (time, user_id,))
