@@ -6,41 +6,7 @@ from telegram.ext import *
 import config
 from SQLighter import SQLighter
 
-"""import telebot
-from telegram import Message
-
-TOKEN = "885275180:AAGDMJcATEbqQWwIiKb-zpAwvR8hkM-N3xs"
-bot = telebot.TeleBot(TOKEN)
-
-USERS = {}
-
-
-@bot.message_handler(commands=['start', 'help'])
-def welcome_message(message: Message):
-    bot.send_message(message.chat.id, "Привет!")
-
-
-bot.polling(timeout=60)
-"""
-
-"""Simple Bot to send timed Telegram messages.
-
-# This program is dedicated to the public domain under the CC0 license.
-
-This Bot uses the Updater class to handle the bot and the JobQueue to send
-timed messages.
-
-First, a few handler functions are defined. Then, those functions are passed to
-the Dispatcher and registered at their respective places.
-Then, the bot is started and runs until we press Ctrl-C on the command line.
-
-Usage:
-Basic Alarm Bot example, sends a message after a set time.
-Press Ctrl-C on the command line or send a signal to the process to stop the
-bot.
-"""
-
-TOKEN = "885275180:AAGDMJcATEbqQWwIiKb-zpAwvR8hkM-N3xs"
+admins = {87763438}
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -48,12 +14,14 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 logger = logging.getLogger(__name__)
 
+CHOOSING, TYPING_REPLY, TYPING_CHOICE = range(3)
+start_keyboard = [['Work', 'Rest'], ['Send Feedback', 'Options']]
 
-# Define a few command handlers. These usually take the two arguments bot and
-# update. Error handlers also receive the raised TelegramError object in error.
-def start(bot, update):
+
+def start(bot, update, chat_data):
+    ch_id = update.message.chat_id
     db_worker = SQLighter(config.database_name)
-    cur_user = (update.message.chat_id, )
+    cur_user = (ch_id,)
     print(cur_user)
     exist = db_worker.searh_user()
     print(exist)
@@ -61,73 +29,69 @@ def start(bot, update):
         print("С возвращением!")
     else:
         db_worker.new_user(update.message.chat_id)
-    update.message.reply_text('Hi! Use /set <seconds> to set a timer')
+
+    markup = telegram.ReplyKeyboardMarkup(start_keyboard)
+    bot.send_message(chat_id=update.message.chat_id,
+                     text='This is tomato timer. Please, choose any option.',
+                     reply_markup=markup)
+    dp.add_handler(RegexHandler("^(Work)$", work_timer,
+                                pass_chat_data=True,
+                                pass_job_queue=True))
+    dp.add_handler(RegexHandler("^(Rest)$", rest_timer,
+                                pass_chat_data=True,
+                                pass_job_queue=True))
+    dp.add_handler(RegexHandler("^(Send Feedback)$", feedback_handler,
+                                pass_chat_data=True))
+    dp.add_handler(RegexHandler("^(Send Feedback)$", feedback_handler,
+                                pass_chat_data=True, pass_user_data=True))
+    dp.add_handler(RegexHandler("^(Send Feedback)$"))
 
 
-def test(bot, update, job_queue, chat_data):
-    msg = update.message.text.split()
-    chat_id = update.message.chat_id
-    print(msg)
-    if msg[0] == 'test':
-        print("Received", update.message.text)
-        bot.send_message(chat_id=update.message.chat_id, text='ping')
-    if msg[0] == 'work':
-        try:
-            # args[0] should contain the time for the timer in seconds
-            due = float(msg[1]) * 60
-            if due < 0:
-                update.message.reply_text('Sorry we can not go back to future!')
-                return
+def settings_handler(bot, update):
+    pass
 
-            # Add job to queue
-            job = job_queue.run_once(alarm, due, context=chat_id)
-            chat_data['job'] = job
 
-            update.message.reply_text('Timer successfully set!')
+def feedback_handler(bot, update, chat_data):
+    """Catch user feedback"""
+    global test
+    test = MessageHandler(Filters.text, send_feedback, pass_user_data=True)
+    dp.add_handler(test)
 
-        except (IndexError, ValueError):
-            update.message.reply_text('Usage: ')
-    if msg[0] == 'rest':
-        try:
-            # args[0] should contain the time for the timer in seconds
-            due = float(msg[1]) * 60
-            if due < 0:
-                update.message.reply_text('Sorry we can not go back to future!')
-                return
 
-            # Add job to queue
-            job = job_queue.run_once(alarm, due, context=chat_id)
-            chat_data['job'] = job
-
-            update.message.reply_text('Timer successfully set!')
-
-        except (IndexError, ValueError):
-            update.message.reply_text('Usage: ')
+def send_feedback(bot, update, user_data):
+    """Send feedback to admins"""
+    for guy in admins:
+        bot.send_message(guy, str(update.message.from_user.username) + ' sent feedback: ' + update.message.text)
+    dp.remove_handler(test)
 
 
 def alarm(bot, job):
     """Send the alarm message."""
-    bot.send_message(job.context, text='Beep!')
+    return_keyboard = [['Work', 'Rest'], ['Send Feedback', 'Options']]
+    markup = telegram.ReplyKeyboardMarkup(return_keyboard)
+    bot.send_message(job.context, text='Beep!', reply_markup=markup)
 
 
-def set_timer(bot, update, args, job_queue, chat_data):
-    """Add a job to the queue."""
+def work_timer(bot, update, job_queue, chat_data):
+    start_keyboard[0][0] = 'Stop'
+    markup = telegram.ReplyKeyboardMarkup(start_keyboard)
     chat_id = update.message.chat_id
-    try:
-        # args[0] should contain the time for the timer in seconds
-        due = float(args[0]) * 60
-        if due < 0:
-            update.message.reply_text('Sorry we can not go back to future!')
-            return
+    db_worker = SQLighter(config.database_name)
+    due = float(db_worker.select_work(update.message.chat_id).fetchone()[0])
+    job = job_queue.run_once(alarm, due, context=chat_id)
+    chat_data['job'] = job
+    bot.send_message(text='Timer successfully set!', chat_id=chat_id, reply_markup=markup)
 
-        # Add job to queue
-        job = job_queue.run_once(alarm, due, context=chat_id)
-        chat_data['job'] = job
 
-        update.message.reply_text('Timer successfully set!')
-
-    except (IndexError, ValueError):
-        update.message.reply_text('Usage: ')
+def rest_timer(bot, update, job_queue, chat_data):
+    start_keyboard[0][1] = 'Stop'
+    markup = telegram.ReplyKeyboardMarkup(start_keyboard)
+    chat_id = update.message.chat_id
+    db_worker = SQLighter(config.database_name)
+    due = float(db_worker.select_rest(update.message.chat_id).fetchone()[0])
+    job = job_queue.run_once(alarm, due, context=chat_id)
+    chat_data['job'] = job
+    bot.send_message(text='Timer successfully set!', chat_id=chat_id, reply_markup=markup)
 
 
 def unset(bot, update, chat_data):
@@ -135,11 +99,9 @@ def unset(bot, update, chat_data):
     if 'job' not in chat_data:
         update.message.reply_text('You have no active timer')
         return
-
     job = chat_data['job']
     job.schedule_removal()
     del chat_data['job']
-
     update.message.reply_text('Timer successfully unset!')
 
 
@@ -150,20 +112,17 @@ def error(bot, update, error):
 
 def main():
     """Run bot."""
-    updater = Updater(config.token)
+    global dp
+
+    updater = Updater("885275180:AAGDMJcATEbqQWwIiKb-zpAwvR8hkM-N3xs")
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
 
     # on different commands - answer in Telegram
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CommandHandler("help", start))
-    dp.add_handler(CommandHandler("set", set_timer,
-                                  pass_args=True,
-                                  pass_job_queue=True,
-                                  pass_chat_data=True))
+    dp.add_handler(CommandHandler("start", start, pass_chat_data=True))
     dp.add_handler(CommandHandler("unset", unset, pass_chat_data=True))
-    dp.add_handler(MessageHandler(Filters.text, test, pass_chat_data=True, pass_job_queue=True))
+    RegexHandler('^(Work)$', work_timer, pass_user_data=True, pass_job_queue=True)
 
     # log all errors
     dp.add_error_handler(error)
