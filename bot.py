@@ -1,5 +1,6 @@
 import logging
 
+import telegram
 from telegram.ext import *
 
 import config
