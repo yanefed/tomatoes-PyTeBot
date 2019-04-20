@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-token = '885275180:AAGDMJcATEbqQWwIiKb-zpAwvR8hkM-N3xs'  # Токен бота
+token = '894912917:AAHHpQpoHUJfRvnoyX0ZcxuuJqC1wRklT9c'  # Токен бота
 database_name = 'data.db'  # Файл с базой данных
 shelve_name = 'shelve.db'  # Файл с хранилищем
 admins = {569763743}
