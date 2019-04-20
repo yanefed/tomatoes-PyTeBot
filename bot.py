@@ -79,11 +79,15 @@ def set_work_check(bot, update):
     db_worker = SQLighter(config.database_name)
     try:
         temp = float(update.message.text)
-        print('success')
-        temp = str(temp)
-        db_worker.write_work(time=temp, user_id=update.message.chat_id)
-        bot.send_message(chat_id=update.message.chat_id, text='Done',
-                         reply_markup=telegram.ReplyKeyboardMarkup(config.start_keyboard))
+        if temp <= 0:
+            bot.send_message(update.message.chat_id, text='We cannot go to future. Try again')
+            set_work_option(bot, update)
+        else:
+            print('success')
+            temp = str(temp)
+            db_worker.write_work(time=temp, user_id=update.message.chat_id)
+            bot.send_message(chat_id=update.message.chat_id, text='Done',
+                             reply_markup=telegram.ReplyKeyboardMarkup(config.start_keyboard))
         dp.remove_handler(text_handler)
     except ValueError:
         bot.send_message(update.message.chat_id, text='Wrong value. Try again.')
@@ -103,12 +107,15 @@ def set_rest_check(bot, update):
     db_worker = SQLighter(config.database_name)
     try:
         temp = float(update.message.text)
-        print('success')
-        temp = str(temp)
-        db_worker.write_rest(time=temp, user_id=update.message.chat_id)
-        bot.send_message(chat_id=update.message.chat_id, text='Done',
-                         reply_markup=telegram.ReplyKeyboardMarkup(config.start_keyboard))
-        dp.remove_handler(text_handler)
+        if temp <= 0:
+            bot.send_message(update.message.chat_id, text='We cannot go to future. Try again.')
+        else:
+            print('success')
+            temp = str(temp)
+            db_worker.write_rest(time=temp, user_id=update.message.chat_id)
+            bot.send_message(chat_id=update.message.chat_id, text='Done',
+                             reply_markup=telegram.ReplyKeyboardMarkup(config.start_keyboard))
+            dp.remove_handler(text_handler)
     except ValueError:
         set_rest_option(bot, update)
 
