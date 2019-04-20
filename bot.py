@@ -192,6 +192,9 @@ def error(bot, update, error):
     logger.warning('Update "%s" caused error "%s"', update, error)
 
 
+def dummy(bot, update):
+    bot.send_message(chat_id=update.message.chat_id, text='Print "/start" to make this bot work.')
+
 def main():
     """Run bot."""
     global dp
@@ -204,6 +207,7 @@ def main():
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("start", start, pass_chat_data=True))
     dp.add_handler(CommandHandler("unset", unset, pass_chat_data=True))
+    dp.add_handler(MessageHandler(Filters.text, dummy))
 
     # log all errors
     dp.add_error_handler(error)
