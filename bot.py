@@ -32,6 +32,7 @@ def start(bot, update, chat_data):
     bot.send_message(chat_id=update.message.chat_id,
                      text='This is tomato timer. Please, choose any option.',
                      reply_markup=markup)
+    dp.remove_handler(not_started)
     dp.add_handler(RegexHandler("^(Work)$", work_timer,
                                 pass_chat_data=True,
                                 pass_job_queue=True))
@@ -197,7 +198,7 @@ def dummy(bot, update):
 
 def main():
     """Run bot."""
-    global dp
+    global dp, not_started
 
     updater = Updater(config.token)
 
@@ -207,7 +208,8 @@ def main():
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("start", start, pass_chat_data=True))
     dp.add_handler(CommandHandler("unset", unset, pass_chat_data=True))
-    dp.add_handler(MessageHandler(Filters.text, dummy))
+    not_started = MessageHandler(Filters.text, dummy)
+    dp.add_handler(not_started)
 
     # log all errors
     dp.add_error_handler(error)
