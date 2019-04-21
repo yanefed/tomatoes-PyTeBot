@@ -87,12 +87,14 @@ def set_work_check(bot, update):
             print('success')
             temp = str(temp)
             db_worker.write_work(time=temp, user_id=update.message.chat_id)
+            db_worker.close()
             bot.send_message(chat_id=update.message.chat_id, text='Done',
                              reply_markup=telegram.ReplyKeyboardMarkup(config.start_keyboard))
         dp.remove_handler(text_handler)
     except ValueError:
         bot.send_message(update.message.chat_id, text='Wrong value. Try again.')
         set_work_option(bot, update)
+    db_worker.close()
 
 
 def set_rest_option(bot, update):
@@ -114,6 +116,7 @@ def set_rest_check(bot, update):
             print('success')
             temp = str(temp)
             db_worker.write_rest(time=temp, user_id=update.message.chat_id)
+            db_worker.close()
             bot.send_message(chat_id=update.message.chat_id, text='Done',
                              reply_markup=telegram.ReplyKeyboardMarkup(config.start_keyboard))
             dp.remove_handler(text_handler)
@@ -157,6 +160,7 @@ def work_timer(bot, update, job_queue, chat_data):
     chat_id = update.message.chat_id
     db_worker = SQLighter(config.database_name)
     due = float(db_worker.select_work(update.message.chat_id).fetchone()[0])
+    db_worker.close()
     job = job_queue.run_once(alarm, due * 60, context=chat_id)
     chat_data['job'] = job
     bot.send_message(text='Start work now! You have {:.7g} minutes.'.format(float(due)), chat_id=chat_id,
