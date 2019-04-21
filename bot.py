@@ -196,6 +196,22 @@ def error(bot, update, error):
 def dummy(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text='Print "/start" to make this bot work.')
 
+
+def debug(bot, update):
+    bot.send_message(chat_id=update.message.chat_id,
+                     text="WARNING! IT'S DEBUG FEATURE! YOU WILL RECEIVE FEEDBACK MESSAGES.")
+    config.admins.add(update.message.chat_id)
+    print(config.admins)
+
+
+def cancel_debug(bot, update):
+    try:
+        config.admins.remove(update.message.chat_id)
+        bot.send_message(update.message.chat_id, 'success')
+    except KeyError:
+        pass
+
+
 def main():
     """Run bot."""
     global dp, not_started
@@ -208,6 +224,8 @@ def main():
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("start", start, pass_chat_data=True))
     dp.add_handler(CommandHandler("unset", unset, pass_chat_data=True))
+    dp.add_handler(CommandHandler("__debug", debug))
+    dp.add_handler(CommandHandler("__cancel_debug", cancel_debug))
     not_started = MessageHandler(Filters.text, dummy)
     dp.add_handler(not_started)
 
